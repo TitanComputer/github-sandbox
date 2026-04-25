@@ -73,12 +73,26 @@ jobs:
 
           rm -rf tmp_downloads
 
+          # Generate download-links.txt with raw.githubusercontent.com URLs
+          REPO_FULL_NAME="${{ github.repository }}"
+          BRANCH_NAME="${GITHUB_REF_NAME}"
+          echo "🔗 Generating download-links.txt..."
+          > download-links.txt
+          for f in downloads/*; do
+            if [ -f "$f" ]; then
+              # Remove 'downloads/' prefix and URL-encode spaces for raw.githubusercontent.com
+              ENCODED_FILE=$(echo "${f#downloads/}" | sed 's/ /%20/g')
+              echo "https://raw.githubusercontent.com/$REPO_FULL_NAME/$BRANCH_NAME/downloads/$ENCODED_FILE" >> download-links.txt
+            fi
+          done
+
       - name: Commit & Push
         run: |
           BRANCH="${GITHUB_REF_NAME}"
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git add downloads/
-          git commit -m "Add downloaded files from commit [skip ci]" || echo "Nothing to commit"
+          git add downloads/ download-links.txt
+          git commit -m "Add downloaded files and update links [skip ci]" || echo "Nothing to commit"
           echo "🚀 Pushing to branch: $BRANCH"
           git push origin HEAD:$BRANCH
